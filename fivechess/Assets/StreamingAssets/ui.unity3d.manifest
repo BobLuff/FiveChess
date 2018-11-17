@@ -1,0 +1,30 @@
+ManifestFileVersion: 0
+CRC: 3213433518
+Hashes:
+  AssetFileHash:
+    serializedVersion: 2
+    Hash: 384f27e310359009b88b0cd8fea45962
+  TypeTreeHash:
+    serializedVersion: 2
+    Hash: 2fadfedff0f6a204d68f5fe828d16a52
+HashAppended: 0
+ClassTypes:
+- Class: 1
+  Script: {instanceID: 0}
+- Class: 4
+  Script: {instanceID: 0}
+- Class: 21
+  Script: {instanceID: 0}
+- Class: 28
+  Script: {instanceID: 0}
+- Class: 48
+  Script: {instanceID: 0}
+- Class: 212
+  Script: {instanceID: 0}
+- Class: 213
+  Script: {instanceID: 0}
+Assets:
+- Assets/Prefabs/White.prefab
+- Assets/Prefabs/Black.prefab
+- Assets/Prefabs/ChessBoard.prefab
+Dependencies: []
