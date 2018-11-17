@@ -12,8 +12,8 @@ public enum Turn                //先手顺序
 public enum ChessState         //是否已经落子 
 {
     None=0,
-    Black=0,
-    White=1,
+    BlackChess,
+    WhiteChess,
 }
 
 public class GameManager : MonoBehaviour {
@@ -22,6 +22,8 @@ public class GameManager : MonoBehaviour {
     [SerializeField]
     private Camera _mainCamera;
 
+    private GameObject _blackPrefab;
+    private GameObject _whiteParefab;
 
     private AssetBundle _uiAbs;
     private Vector3 _leftTopPos;
@@ -30,7 +32,7 @@ public class GameManager : MonoBehaviour {
     private Vector3 _rightBottomPos;
     private Vector3 _pointerPos;
 
-    private Vector2[,] _chessPos;                                                                     //棋盘落子的坐标
+    private Vector3[,] _chessPos;                                                                     //棋盘落子的坐标
     private ChessState[,] _chessState;
 
     private Turn _chessTurn = Turn.black; 
@@ -40,6 +42,8 @@ public class GameManager : MonoBehaviour {
 
     private const string UI_AssetBundle_Path = "Assets/StreamingAssets/ui.unity3d";
     private const string ChessBoard_Path = "ChessBoard";
+    private const string Black_Path = "Black";
+    private const string White_Path = "White";
     private const int ChessBoard_Grid_Num = 14;                                                       //棋盘网格总数
 
 
@@ -52,6 +56,8 @@ public class GameManager : MonoBehaviour {
 
         _uiAbs = AssetBundle.LoadFromFile(UI_AssetBundle_Path);
         GameObject chessBoard = _uiAbs.LoadAsset<GameObject>(ChessBoard_Path);
+        _blackPrefab = _uiAbs.LoadAsset<GameObject>(Black_Path);
+        _whiteParefab = _uiAbs.LoadAsset<GameObject>(White_Path);
         GameObject obj=Instantiate(chessBoard);
         GetChessBoardVertexs(obj);
         _gridWidth = (_rightTopPos.x - _leftTopPos.x) / ChessBoard_Grid_Num;
@@ -62,28 +68,32 @@ public class GameManager : MonoBehaviour {
 
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if(Input.GetMouseButton(0))
         {
-            _pointerPos = Input.mousePosition;
+            _pointerPos = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
             for(int i=0;i<=ChessBoard_Grid_Num;i++)
             {
                 for(int j=0;j<=ChessBoard_Grid_Num;j++)
                 {
+                    var chess = _chessState[i, j];
+                    Vector3 chessPos =_chessPos[i,j];
                     //找到最接近鼠标点击位置的落子点，如果空则落子
-                    if (Dis(_pointerPos, _chessPos[i, j]) < _minGridDis / 2 && _chessState[i, j] == ChessState.None)
+                    if (Dis(_pointerPos, chessPos) < _minGridDis / 2 && chess == ChessState.None)
                     {
                         //根据下棋顺序确定落子颜色
-                        _chessState[i, j] = _chessTurn == Turn.black ? ChessState.Black:ChessState.White;
+                        chess = _chessTurn == Turn.black ? ChessState.BlackChess:ChessState.WhiteChess;
                         //落子成功，更换下棋顺序
                         _chessTurn = _chessTurn == Turn.black ? Turn.white : Turn.black;
-                        switch (_chessState[i,j])
+                        switch (chess)
                         {
                             //todo
-                            case ChessState.Black:
+                            case ChessState.BlackChess:
+                                Instantiate(_blackPrefab, chessPos,Quaternion.identity);
                                 break;
-                            case ChessState.White:
+                            case ChessState.WhiteChess:
+                                Instantiate(_whiteParefab, chessPos, Quaternion.identity);
                                 break;
                             default:
                                 break;
@@ -100,10 +110,10 @@ public class GameManager : MonoBehaviour {
     private void GetChessBoardVertexs(GameObject chessBoard)
     {
         var vertexObjs = chessBoard.GetComponentsInChildren<Transform>();        //GetComponentsInChildren回读取父物体中的Transform
-        _leftTopPos = _mainCamera.WorldToScreenPoint(vertexObjs[1].position);
-        _rightTopPos = _mainCamera.WorldToScreenPoint(vertexObjs[2].position);
-        _leftBottomPos = _mainCamera.WorldToScreenPoint(vertexObjs[3].position);
-        _rightBottomPos = _mainCamera.WorldToScreenPoint(vertexObjs[4].position);
+        _leftTopPos = vertexObjs[1].position;
+        _rightTopPos = vertexObjs[2].position;
+        _leftBottomPos = vertexObjs[3].position;
+        _rightBottomPos = vertexObjs[4].position;
     }
 
     /// <summary>
@@ -111,8 +121,8 @@ public class GameManager : MonoBehaviour {
     /// </summary>
     private void GetChessPos()
     {
-        Vector2 pos = Vector2.zero;
-        _chessPos = new Vector2[ChessBoard_Grid_Num+1, ChessBoard_Grid_Num+1];
+        Vector3 pos = Vector3.zero;
+        _chessPos = new Vector3[ChessBoard_Grid_Num+1, ChessBoard_Grid_Num+1];
         for(int i=0;i<=ChessBoard_Grid_Num;i++)
         {
             for(int j=0;j<= ChessBoard_Grid_Num; j++)
@@ -126,7 +136,7 @@ public class GameManager : MonoBehaviour {
     }
 
     //计算平面距离函数
-    private float Dis(Vector3 mPos, Vector2 gridPos)
+    private float Dis(Vector3 mPos, Vector3 gridPos)
     {
         return Mathf.Sqrt(Mathf.Pow(mPos.x - gridPos.x, 2) + Mathf.Pow(mPos.y - gridPos.y, 2));
     }
