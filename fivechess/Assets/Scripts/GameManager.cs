@@ -18,7 +18,6 @@ public enum ChessState         //是否已经落子
 }
 
 
-
 public class GameManager : MonoBehaviour {
 
 
@@ -27,6 +26,8 @@ public class GameManager : MonoBehaviour {
 
     private GameObject _blackPrefab;
     private GameObject _whiteParefab;
+    private GameObject _whiteWinPrefab;
+    private GameObject _blackWinPrefab;
 
     private AssetBundle _uiAbs;
     private Vector3 _leftTopPos;
@@ -50,7 +51,10 @@ public class GameManager : MonoBehaviour {
     private const string ChessBoard_Path = "ChessBoard";
     private const string Black_Path = "Black";
     private const string White_Path = "White";
+    private const string BlackWin_Path = "BlackWin";
+    private const string WhiteWin_Path = "WhiteWin";
     private const int ChessBoard_Grid_Num = 14;                                                       //棋盘网格总数
+    private const int Win_Num = 5;                                                                    //连续五个相同颜色的棋子即可获胜
 
 
 
@@ -63,6 +67,8 @@ public class GameManager : MonoBehaviour {
         GameObject chessBoard = _uiAbs.LoadAsset<GameObject>(ChessBoard_Path);
         _blackPrefab = _uiAbs.LoadAsset<GameObject>(Black_Path);
         _whiteParefab = _uiAbs.LoadAsset<GameObject>(White_Path);
+        _whiteWinPrefab = _uiAbs.LoadAsset<GameObject>(WhiteWin_Path);
+        _blackWinPrefab = _uiAbs.LoadAsset<GameObject>(BlackWin_Path);
         GameObject obj=Instantiate(chessBoard);
         GetChessBoardVertexs(obj);
         _gridWidth = (_rightTopPos.x - _leftTopPos.x) / ChessBoard_Grid_Num;
@@ -75,7 +81,7 @@ public class GameManager : MonoBehaviour {
 
     private void FixedUpdate()
     {
-        if(Input.GetMouseButton(0))
+        if(Input.GetMouseButton(0)&&_isWin==false)
         {
             _pointerPos = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
             for(int i=0;i<=ChessBoard_Grid_Num;i++)
@@ -93,7 +99,6 @@ public class GameManager : MonoBehaviour {
                         _curChess = _chess[i, j];
                         switch (_curChess.CurChessState)
                         {
-                            //todo
                             case ChessState.BlackChess:
                                 Instantiate(_blackPrefab, _curChess.Position,Quaternion.identity);
                                 break;
@@ -104,7 +109,10 @@ public class GameManager : MonoBehaviour {
                                 break;
                         }
                         _isWin=IsWin(i, j,_curChess.CurChessState);
-                        ShowResultPanel(_isWin, _curChess.CurChessState);
+                        if(_isWin)
+                        {
+                            ShowResultPanel(_curChess.CurChessState);
+                        }
                     }
 
                 }
@@ -150,6 +158,9 @@ public class GameManager : MonoBehaviour {
     }
 
    
+    /// <summary>
+    /// 判断当前棋手是否获胜
+    /// </summary>
     private bool IsWin(int x, int y, ChessState chess)
     {
         int i = x, j = y;
@@ -166,7 +177,7 @@ public class GameManager : MonoBehaviour {
             i++;
             count++; //累加右侧
         }
-        if (count >= 5)
+        if (count >= Win_Num)
             return true; //获胜
 
         /*计算竖直方向连续棋子个数*/
@@ -183,7 +194,7 @@ public class GameManager : MonoBehaviour {
             j++;
             count++; //累加下方
         }
-        if (count >= 5)
+        if (count >= Win_Num)
             return true; //获胜
 
         /*计算左上右下方向连续棋子个数*/
@@ -203,7 +214,7 @@ public class GameManager : MonoBehaviour {
             j++;
             count++; //累加右下
         }
-        if (count >= 5)
+        if (count >= Win_Num)
             return true; //获胜
 
         /*计算右上左下方向连续棋子个数*/
@@ -224,7 +235,7 @@ public class GameManager : MonoBehaviour {
             j++;
             count++; //累加左下
         }
-        if (count >= 5)
+        if (count >= Win_Num)
             return true; //获胜
 
         return false; //该步没有取胜
@@ -232,26 +243,31 @@ public class GameManager : MonoBehaviour {
     }
 
 
-    private void ShowResultPanel(bool isWin,ChessState curState)
+    private void ShowResultPanel(ChessState curState)
     {
-        if(!isWin)
-        {
-            return;
-        }
         if (curState == ChessState.BlackChess)
         {
+            Instantiate(_blackWinPrefab);
             Debug.Log("Black Win");
-            _uiAbs.Unload(true);
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
 
         }
         else if(curState==ChessState.WhiteChess)
         {
+            Instantiate(_whiteWinPrefab);
             Debug.Log("White Win");
-            _uiAbs.Unload(true);
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-
         }
+        if(Input.GetKey(KeyCode.R))
+        {
+            RestartGame();
+        }
+    }
+
+    private void RestartGame()
+    {
+        _uiAbs.Unload(true);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
     }
 
 

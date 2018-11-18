@@ -1,9 +1,9 @@
 ManifestFileVersion: 0
-CRC: 3213433518
+CRC: 2524919564
 Hashes:
   AssetFileHash:
     serializedVersion: 2
-    Hash: 384f27e310359009b88b0cd8fea45962
+    Hash: 1483cd326a0cc530271d8e1554e48c3d
   TypeTreeHash:
     serializedVersion: 2
     Hash: 2fadfedff0f6a204d68f5fe828d16a52
@@ -26,5 +26,7 @@ ClassTypes:
 Assets:
 - Assets/Prefabs/White.prefab
 - Assets/Prefabs/Black.prefab
+- Assets/Prefabs/BlackWin.prefab
+- Assets/Prefabs/WhiteWin.prefab
 - Assets/Prefabs/ChessBoard.prefab
 Dependencies: []
