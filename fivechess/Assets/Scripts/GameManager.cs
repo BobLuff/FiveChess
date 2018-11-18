@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public enum Turn                //先手顺序
 {
@@ -15,6 +16,8 @@ public enum ChessState         //是否已经落子
     BlackChess,
     WhiteChess,
 }
+
+
 
 public class GameManager : MonoBehaviour {
 
@@ -32,13 +35,16 @@ public class GameManager : MonoBehaviour {
     private Vector3 _rightBottomPos;
     private Vector3 _pointerPos;
 
-    private Vector3[,] _chessPos;                                                                     //棋盘落子的坐标
-    private ChessState[,] _chessState;
+    private Chess[,] _chess;
+    private Chess _curChess = new Chess();
+
 
     private Turn _chessTurn = Turn.black; 
     private float _gridWidth;                                                                         //棋盘格宽度
     private float _gridHeight;                                                                        //棋盘格高度
     private float _minGridDis;
+
+    private bool _isWin = false;
 
     private const string UI_AssetBundle_Path = "Assets/StreamingAssets/ui.unity3d";
     private const string ChessBoard_Path = "ChessBoard";
@@ -52,8 +58,7 @@ public class GameManager : MonoBehaviour {
 
     private void Awake()
     {
-        _chessState = new ChessState[ChessBoard_Grid_Num+1, ChessBoard_Grid_Num+1];
-
+        _chess = new Chess[15, 15];
         _uiAbs = AssetBundle.LoadFromFile(UI_AssetBundle_Path);
         GameObject chessBoard = _uiAbs.LoadAsset<GameObject>(ChessBoard_Path);
         _blackPrefab = _uiAbs.LoadAsset<GameObject>(Black_Path);
@@ -77,27 +82,29 @@ public class GameManager : MonoBehaviour {
             {
                 for(int j=0;j<=ChessBoard_Grid_Num;j++)
                 {
-                    var chess = _chessState[i, j];
-                    Vector3 chessPos =_chessPos[i,j];
-                    //找到最接近鼠标点击位置的落子点，如果空则落子
-                    if (Dis(_pointerPos, chessPos) < _minGridDis / 2 && chess == ChessState.None)
+                    _curChess = _chess[i, j];
+                    //找到最接近鼠标点击位置的落子点，如果空,则落子
+                    if (Dis(_pointerPos, _curChess.Position) < _minGridDis / 2 && _curChess.CurChessState == ChessState.None)
                     {
                         //根据下棋顺序确定落子颜色
-                        chess = _chessTurn == Turn.black ? ChessState.BlackChess:ChessState.WhiteChess;
+                        _chess[i,j].CurChessState = _chessTurn == Turn.black ? ChessState.BlackChess:ChessState.WhiteChess;
                         //落子成功，更换下棋顺序
                         _chessTurn = _chessTurn == Turn.black ? Turn.white : Turn.black;
-                        switch (chess)
+                        _curChess = _chess[i, j];
+                        switch (_curChess.CurChessState)
                         {
                             //todo
                             case ChessState.BlackChess:
-                                Instantiate(_blackPrefab, chessPos,Quaternion.identity);
+                                Instantiate(_blackPrefab, _curChess.Position,Quaternion.identity);
                                 break;
                             case ChessState.WhiteChess:
-                                Instantiate(_whiteParefab, chessPos, Quaternion.identity);
+                                Instantiate(_whiteParefab, _curChess.Position, Quaternion.identity);
                                 break;
                             default:
                                 break;
                         }
+                        _isWin=IsWin(i, j,_curChess.CurChessState);
+                        ShowResultPanel(_isWin, _curChess.CurChessState);
                     }
 
                 }
@@ -122,15 +129,16 @@ public class GameManager : MonoBehaviour {
     private void GetChessPos()
     {
         Vector3 pos = Vector3.zero;
-        _chessPos = new Vector3[ChessBoard_Grid_Num+1, ChessBoard_Grid_Num+1];
         for(int i=0;i<=ChessBoard_Grid_Num;i++)
         {
             for(int j=0;j<= ChessBoard_Grid_Num; j++)
             {
+                _chess[i, j] = new Chess();
                 pos.x = _leftBottomPos.x + _gridWidth * i;
                 pos.y = _leftBottomPos.y + _gridHeight * j;
-                _chessPos[i, j] = pos;
-                _chessState[i, j] = ChessState.None;
+                _chess[i, j].Position = pos;
+                _chess[i, j].CurChessState = ChessState.None;
+               
             }
         }                                                                                                            
     }
@@ -139,6 +147,111 @@ public class GameManager : MonoBehaviour {
     private float Dis(Vector3 mPos, Vector3 gridPos)
     {
         return Mathf.Sqrt(Mathf.Pow(mPos.x - gridPos.x, 2) + Mathf.Pow(mPos.y - gridPos.y, 2));
+    }
+
+   
+    private bool IsWin(int x, int y, ChessState chess)
+    {
+        int i = x, j = y;
+        int count = 0; //棋子计数器
+                       /*计算水平方向连续棋子个数*/
+        while (i > -1 && _chess[i,j].CurChessState ==chess )
+        {
+            i--;
+            count++; //累加左侧
+        }
+        i = x + 1;
+        while (i < 15 && _chess[i,j].CurChessState == chess)
+        {
+            i++;
+            count++; //累加右侧
+        }
+        if (count >= 5)
+            return true; //获胜
+
+        /*计算竖直方向连续棋子个数*/
+        i = x;
+        count = 0;
+        while (j > -1 && _chess[i,j].CurChessState == chess)
+        {
+            j--;
+            count++; //累加上方
+        }
+        j = y + 1;
+        while (j < 15 && _chess[i, j].CurChessState == chess)
+        {
+            j++;
+            count++; //累加下方
+        }
+        if (count >= 5)
+            return true; //获胜
+
+        /*计算左上右下方向连续棋子个数*/
+        j = y;
+        count = 0;
+        while (i > -1 && j > -1 && _chess[i, j].CurChessState == chess)
+        {
+            i--;
+            j--;
+            count++; //累加左上
+        }
+        i = x + 1;
+        j = y + 1;
+        while (i < 15 && j < 15 && _chess[i, j].CurChessState == chess)
+        {
+            i++;
+            j++;
+            count++; //累加右下
+        }
+        if (count >= 5)
+            return true; //获胜
+
+        /*计算右上左下方向连续棋子个数*/
+        i = x;
+        j = y;
+        count = 0;
+        while (i < 15 && j > -1 && _chess[i, j].CurChessState == chess)
+        {
+            i++;
+            j--;
+            count++; //累加右上
+        }
+        i = x - 1;
+        j = y + 1;
+        while (i > -1 && j < 15 && _chess[i, j].CurChessState == chess)
+        {
+            i--;
+            j++;
+            count++; //累加左下
+        }
+        if (count >= 5)
+            return true; //获胜
+
+        return false; //该步没有取胜
+
+    }
+
+
+    private void ShowResultPanel(bool isWin,ChessState curState)
+    {
+        if(!isWin)
+        {
+            return;
+        }
+        if (curState == ChessState.BlackChess)
+        {
+            Debug.Log("Black Win");
+            _uiAbs.Unload(true);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        }
+        else if(curState==ChessState.WhiteChess)
+        {
+            Debug.Log("White Win");
+            _uiAbs.Unload(true);
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+
+        }
     }
 
 
