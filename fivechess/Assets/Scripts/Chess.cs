@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class Chess
 {
-    public ChessState CurChessState=new ChessState();
-    public Vector3 Position = new Vector3();
+    public ChessState CurChessState;
+    public Vector3 Position;
 }
 
 

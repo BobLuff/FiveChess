@@ -119,6 +119,10 @@ public class GameManager : MonoBehaviour {
             }
 
         }
+        if (Input.GetKey(KeyCode.R)&&_isWin)
+        {
+            RestartGame();
+        }
     }
 
 
@@ -249,18 +253,13 @@ public class GameManager : MonoBehaviour {
         {
             Instantiate(_blackWinPrefab);
             Debug.Log("Black Win");
-
-
         }
         else if(curState==ChessState.WhiteChess)
         {
             Instantiate(_whiteWinPrefab);
             Debug.Log("White Win");
         }
-        if(Input.GetKey(KeyCode.R))
-        {
-            RestartGame();
-        }
+
     }
 
     private void RestartGame()
