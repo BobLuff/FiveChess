@@ -1,12 +1,12 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public enum Turn                //先手顺序
+public enum WhoTurn                //先手顺序
 {
-    black=0,
-    white=1,
+    PlayerGo=0,
+    AiGo=1,
 }
 
 
@@ -40,10 +40,14 @@ public class GameManager : MonoBehaviour {
     private Chess _curChess = new Chess();
 
 
-    private Turn _chessTurn = Turn.black; 
+    private int _chessX;
+    private int _chessY;
+    private WhoTurn _whoTurn = WhoTurn.PlayerGo;                                                      //该谁下棋
     private float _gridWidth;                                                                         //棋盘格宽度
     private float _gridHeight;                                                                        //棋盘格高度
     private float _minGridDis;
+
+    private AI _ai = new AI();
 
     private bool _isWin = false;
 
@@ -81,43 +85,10 @@ public class GameManager : MonoBehaviour {
 
     private void FixedUpdate()
     {
-        if(Input.GetMouseButton(0)&&_isWin==false)
+        if(Input.GetMouseButton(0)&&_isWin==false&&_whoTurn==WhoTurn.PlayerGo)
         {
             _pointerPos = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
-            for(int i=0;i<=ChessBoard_Grid_Num;i++)
-            {
-                for(int j=0;j<=ChessBoard_Grid_Num;j++)
-                {
-                    _curChess = _chess[i, j];
-                    //找到最接近鼠标点击位置的落子点，如果空,则落子
-                    if (Dis(_pointerPos, _curChess.Position) < _minGridDis / 2 && _curChess.CurChessState == ChessState.None)
-                    {
-                        //根据下棋顺序确定落子颜色
-                        _chess[i,j].CurChessState = _chessTurn == Turn.black ? ChessState.BlackChess:ChessState.WhiteChess;
-                        //落子成功，更换下棋顺序
-                        _chessTurn = _chessTurn == Turn.black ? Turn.white : Turn.black;
-                        _curChess = _chess[i, j];
-                        switch (_curChess.CurChessState)
-                        {
-                            case ChessState.BlackChess:
-                                Instantiate(_blackPrefab, _curChess.Position,Quaternion.identity);
-                                break;
-                            case ChessState.WhiteChess:
-                                Instantiate(_whiteParefab, _curChess.Position, Quaternion.identity);
-                                break;
-                            default:
-                                break;
-                        }
-                        _isWin=IsWin(i, j,_curChess.CurChessState);
-                        if(_isWin)
-                        {
-                            ShowResultPanel(_curChess.CurChessState);
-                        }
-                    }
-
-                }
-            }
-
+            PlayerGo(_pointerPos);
         }
         if (Input.GetKey(KeyCode.R)&&_isWin)
         {
@@ -159,6 +130,61 @@ public class GameManager : MonoBehaviour {
     private float Dis(Vector3 mPos, Vector3 gridPos)
     {
         return Mathf.Sqrt(Mathf.Pow(mPos.x - gridPos.x, 2) + Mathf.Pow(mPos.y - gridPos.y, 2));
+    }
+
+    /// <summary>
+    /// AI下棋
+    /// </summary>
+    private void AiGo(int x,int y)
+    {
+        _ai.ComputerDo(x, y, out _chessX, out _chessY);
+        _chess[_chessX, _chessY].CurChessState = ChessState.WhiteChess;
+        _curChess = _chess[_chessX, _chessY];
+        Instantiate(_whiteParefab, _curChess.Position, Quaternion.identity);
+        var isWin=IsWin(_chessX, _chessY, ChessState.WhiteChess);
+        if(isWin)
+        {
+            ShowResultPanel(ChessState.WhiteChess);
+            _isWin = true;
+        }
+        else
+        {
+            _whoTurn = WhoTurn.PlayerGo;
+        }
+
+    }
+
+    /// <summary>
+    /// 玩家下棋
+    /// </summary>
+    private void PlayerGo(Vector3 pointerPos)
+    {
+        for (int i = 0; i <= ChessBoard_Grid_Num; i++)
+        {
+            for (int j = 0; j <= ChessBoard_Grid_Num; j++)
+            {
+                _curChess = _chess[i, j];
+                if(_curChess.CurChessState==ChessState.None && Dis(_pointerPos, _curChess.Position) < _minGridDis / 2)                          //找到最接近鼠标点击位置的点，如果空,则落子
+                {
+                    _chess[i, j].CurChessState = ChessState.BlackChess;                                                                          //默认玩家为黑子
+                    Instantiate(_blackPrefab, _curChess.Position, Quaternion.identity);
+                    //落子成功，更换下棋顺序
+                    _whoTurn = WhoTurn.AiGo;
+                    _isWin = IsWin(i, j, ChessState.BlackChess);
+                    if (_isWin)
+                    {
+                        ShowResultPanel(_curChess.CurChessState);
+                    }
+                    else
+                    {
+                        AiGo(i, j);
+                    }
+                    return;
+
+                }
+            }
+        }
+
     }
 
    
@@ -252,12 +278,12 @@ public class GameManager : MonoBehaviour {
         if (curState == ChessState.BlackChess)
         {
             Instantiate(_blackWinPrefab);
-            Debug.Log("Black Win");
+            Debug.Log("Player Win");
         }
         else if(curState==ChessState.WhiteChess)
         {
             Instantiate(_whiteWinPrefab);
-            Debug.Log("White Win");
+            Debug.Log("AI Win");
         }
 
     }
