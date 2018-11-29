@@ -5,24 +5,22 @@ class AI
 {
     // 15*15共有572种五子连珠的可能性
     const int MaxFiveChainCount = 572;
-    private const int BoardCrossCount= 15;                          //棋盘是15 x 15
-    private const int WinNum = 5;
 
     //玩家的可能性
-    bool[,,] _playerTable = new bool[BoardCrossCount, BoardCrossCount, MaxFiveChainCount];
+    bool[,,] _playerTable = new bool[ConstKey.BoardCrossCount, ConstKey.BoardCrossCount, MaxFiveChainCount];
 
     //电脑的可能性
-    bool[,,] _aiTable = new bool[BoardCrossCount, BoardCrossCount, MaxFiveChainCount];
+    bool[,,] _aiTable = new bool[ConstKey.BoardCrossCount, ConstKey.BoardCrossCount, MaxFiveChainCount];
 
     //记录2位玩家所有可能的连珠数，-1则为永远无法5连珠
     int[,] _win = new int[2, MaxFiveChainCount];
 
     //记录每格的分值
-    int[,] _aiGrades = new int[BoardCrossCount, BoardCrossCount];
-    int[,] _playerGrades = new int[BoardCrossCount, BoardCrossCount];
+    int[,] _aiGrades = new int[ConstKey.BoardCrossCount, ConstKey.BoardCrossCount];
+    int[,] _playerGrades = new int[ConstKey.BoardCrossCount, ConstKey.BoardCrossCount];
 
     //记录棋盘
-    int[,] _board = new int[BoardCrossCount, BoardCrossCount];
+    int[,] _board = new int[ConstKey.BoardCrossCount, ConstKey.BoardCrossCount];
 
     int _cgrade, _pgrade;
     int _icount, _m, _n;
@@ -30,9 +28,9 @@ class AI
 
     public AI()
     {
-        for (int i = 0; i < BoardCrossCount; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount; i++)
         {
-            for (int j = 0; j < BoardCrossCount; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount; j++)
             {
                 _playerGrades[i, j] = 0;
                 _aiGrades[i, j] = 0;
@@ -42,11 +40,11 @@ class AI
 
         //遍历所有的五连子可能情况的权值  
         //横  
-        for (int i = 0; i < BoardCrossCount; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount; i++)
         {
-            for (int j = 0; j < BoardCrossCount - 4; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount - 4; j++)
             {
-                for (int k = 0; k < WinNum; k++)
+                for (int k = 0; k < ConstKey.WinNum; k++)
                 {
                     _playerTable[j + k, i, _icount] = true;
                     _aiTable[j + k, i, _icount] = true;
@@ -57,11 +55,11 @@ class AI
         }
 
         //竖
-        for (int i = 0; i < BoardCrossCount; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount; i++)
         {
-            for (int j = 0; j < BoardCrossCount - 4; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount - 4; j++)
             {
-                for (int k = 0; k < WinNum; k++)
+                for (int k = 0; k < ConstKey.WinNum; k++)
                 {
                     _playerTable[i, j + k, _icount] = true;
                     _aiTable[i, j + k, _icount] = true;
@@ -72,11 +70,11 @@ class AI
         }
 
         // 右斜
-        for (int i = 0; i < BoardCrossCount - 4; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount - 4; i++)
         {
-            for (int j = 0; j < BoardCrossCount - 4; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount - 4; j++)
             {
-                for (int k = 0; k < WinNum; k++)
+                for (int k = 0; k < ConstKey.WinNum; k++)
                 {
                     _playerTable[j + k, i + k, _icount] = true;
                     _aiTable[j + k, i + k, _icount] = true;
@@ -87,11 +85,11 @@ class AI
         }
 
         // 左斜
-        for (int i = 0; i < BoardCrossCount - 4; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount - 4; i++)
         {
-            for (int j = BoardCrossCount - 1; j >= 4; j--)
+            for (int j = ConstKey.BoardCrossCount - 1; j >= 4; j--)
             {
-                for (int k = 0; k < WinNum; k++)
+                for (int k = 0; k < ConstKey.WinNum; k++)
                 {
                     _playerTable[j - k, i + k, _icount] = true;
                     _aiTable[j - k, i + k, _icount] = true;
@@ -143,9 +141,9 @@ class AI
     void CalcCore()
     {
         //遍历棋盘上的所有坐标  
-        for (int i = 0; i < BoardCrossCount; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount; i++)
         {
-            for (int j = 0; j < BoardCrossCount; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount; j++)
             {
                 //该坐标的黑子奖励积分清零  
                 _playerGrades[i, j] = 0;
@@ -211,6 +209,21 @@ class AI
 
     }
 
+    public void ComputerFirst(out int finalX,out int finalY)
+    {
+        finalX = 7;
+        finalY = 7;
+        _board[7, 7] = 1;//电脑下子位置   
+    }
+
+    /// <summary>
+    /// 悔棋
+    /// </summary>
+    public void ComputerUndo(int x,int y)
+    {
+        _board[x, y] = 0;
+    }
+
     // AI计算输出, 需要玩家走过的点
     public void ComputerDo(int playerX, int playerY, out int finalX, out int finalY)
     {
@@ -218,9 +231,9 @@ class AI
 
         CalcCore();
 
-        for (int i = 0; i < BoardCrossCount; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount; i++)
         {
-            for (int j = 0; j < BoardCrossCount; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount; j++)
             {
                 //找出棋盘上可落子点的黑子白子的各自最大权值，找出各自的最佳落子点 
                 if (_board[i, j] == 0)

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public enum WhoTurn                //先手顺序
 {
@@ -10,7 +11,7 @@ public enum WhoTurn                //先手顺序
 }
 
 
-public enum ChessState         //是否已经落子 
+public enum ChessState          //落子情况
 {
     None=0,
     BlackChess,
@@ -23,6 +24,14 @@ public class GameManager : MonoBehaviour {
 
     [SerializeField]
     private Camera _mainCamera;
+    [SerializeField]
+    private GameObject _panel;
+    [SerializeField]
+    private GameObject _showPanel;
+    [SerializeField]
+    private Text _blackText;
+    [SerializeField]
+    private Text _whiteText;
 
     private GameObject _blackPrefab;
     private GameObject _whiteParefab;
@@ -36,30 +45,29 @@ public class GameManager : MonoBehaviour {
     private Vector3 _rightBottomPos;
     private Vector3 _pointerPos;
 
-    private Chess[,] _chess;
+    private Chess[,] _chess;                                                                         //棋盘
     private Chess _curChess = new Chess();
 
 
     private int _chessX;
     private int _chessY;
-    private WhoTurn _whoTurn = WhoTurn.PlayerGo;                                                      //该谁下棋
+    private int _playerX;                                                                             //玩家走的位置
+    private int _playerY;
+    private WhoTurn _whoTurn;                                                      //该谁下棋
     private float _gridWidth;                                                                         //棋盘格宽度
     private float _gridHeight;                                                                        //棋盘格高度
     private float _minGridDis;
 
     private AI _ai = new AI();
-
     private bool _isWin = false;
+    private bool _isPlayerFirst;
 
-    private const string UI_AssetBundle_Path = "Assets/StreamingAssets/ui.unity3d";
-    private const string ChessBoard_Path = "ChessBoard";
-    private const string Black_Path = "Black";
-    private const string White_Path = "White";
-    private const string BlackWin_Path = "BlackWin";
-    private const string WhiteWin_Path = "WhiteWin";
-    private const int ChessBoard_Grid_Num = 14;                                                       //棋盘网格总数
-    private const int Win_Num = 5;                                                                    //连续五个相同颜色的棋子即可获胜
+    private bool _isStartGame = false;
+    private bool _canUndo = false;
 
+    private GameObject _lastObj=null;
+    private GameObject _curObj=null;
+    private GameObject _curInstantiationObj = null;
 
 
 
@@ -67,16 +75,16 @@ public class GameManager : MonoBehaviour {
     private void Awake()
     {
         _chess = new Chess[15, 15];
-        _uiAbs = AssetBundle.LoadFromFile(UI_AssetBundle_Path);
-        GameObject chessBoard = _uiAbs.LoadAsset<GameObject>(ChessBoard_Path);
-        _blackPrefab = _uiAbs.LoadAsset<GameObject>(Black_Path);
-        _whiteParefab = _uiAbs.LoadAsset<GameObject>(White_Path);
-        _whiteWinPrefab = _uiAbs.LoadAsset<GameObject>(WhiteWin_Path);
-        _blackWinPrefab = _uiAbs.LoadAsset<GameObject>(BlackWin_Path);
+        _uiAbs = AssetBundle.LoadFromFile(ConstKey.UI_AssetBundle_Path);
+        GameObject chessBoard = _uiAbs.LoadAsset<GameObject>(ConstKey.ChessBoard_AssetBundle_Path);
+        _blackPrefab = _uiAbs.LoadAsset<GameObject>(ConstKey.Black_AssetBundle_Path);
+        _whiteParefab = _uiAbs.LoadAsset<GameObject>(ConstKey.White_AssetBundle_Path);
+        _whiteWinPrefab = _uiAbs.LoadAsset<GameObject>(ConstKey.WhiteWin_AssetBundle_Path);
+        _blackWinPrefab = _uiAbs.LoadAsset<GameObject>(ConstKey.BlackWin_AssetBundle_Path);
         GameObject obj=Instantiate(chessBoard);
         GetChessBoardVertexs(obj);
-        _gridWidth = (_rightTopPos.x - _leftTopPos.x) / ChessBoard_Grid_Num;
-        _gridHeight = (_leftTopPos.y - _leftBottomPos.y) / ChessBoard_Grid_Num;
+        _gridWidth = (_rightTopPos.x - _leftTopPos.x) / ConstKey.ChessBoard_Grid_Num;
+        _gridHeight = (_leftTopPos.y - _leftBottomPos.y) /  ConstKey.ChessBoard_Grid_Num;
         _minGridDis = _gridWidth < _gridHeight ? _gridWidth : _gridHeight;
         GetChessPos();
 
@@ -85,11 +93,15 @@ public class GameManager : MonoBehaviour {
 
     private void FixedUpdate()
     {
-        if(Input.GetMouseButton(0)&&_isWin==false&&_whoTurn==WhoTurn.PlayerGo)
+        if(_isStartGame)
         {
-            _pointerPos = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
-            PlayerGo(_pointerPos);
+            if (Input.GetMouseButton(0) && _isWin == false && _whoTurn == WhoTurn.PlayerGo)
+            {
+                _pointerPos = _mainCamera.ScreenToWorldPoint(Input.mousePosition);
+                PlayerGo(_pointerPos);
+            }
         }
+
         if (Input.GetKey(KeyCode.R)&&_isWin)
         {
             RestartGame();
@@ -112,9 +124,9 @@ public class GameManager : MonoBehaviour {
     private void GetChessPos()
     {
         Vector3 pos = Vector3.zero;
-        for(int i=0;i<=ChessBoard_Grid_Num;i++)
+        for(int i=0;i<ConstKey.BoardCrossCount;i++)
         {
-            for(int j=0;j<= ChessBoard_Grid_Num; j++)
+            for(int j=0;j< ConstKey.BoardCrossCount; j++)
             {
                 _chess[i, j] = new Chess();
                 pos.x = _leftBottomPos.x + _gridWidth * i;
@@ -137,20 +149,25 @@ public class GameManager : MonoBehaviour {
     /// </summary>
     private void AiGo(int x,int y)
     {
+        _playerX = x;
+        _playerY = y;
         _ai.ComputerDo(x, y, out _chessX, out _chessY);
-        _chess[_chessX, _chessY].CurChessState = ChessState.WhiteChess;
+        _chess[_chessX, _chessY].CurChessState =_isPlayerFirst? ChessState.WhiteChess:ChessState.BlackChess;
+        _curInstantiationObj = _isPlayerFirst ? _whiteParefab : _blackPrefab;
         _curChess = _chess[_chessX, _chessY];
-        Instantiate(_whiteParefab, _curChess.Position, Quaternion.identity);
-        var isWin=IsWin(_chessX, _chessY, ChessState.WhiteChess);
+        _curObj=Instantiate(_curInstantiationObj, _curChess.Position, Quaternion.identity);
+        var isWin=IsWin(_chessX, _chessY, _curChess.CurChessState);
         if(isWin)
         {
-            ShowResultPanel(ChessState.WhiteChess);
+            ShowResultPanel(_curChess.CurChessState);
             _isWin = true;
         }
         else
         {
             _whoTurn = WhoTurn.PlayerGo;
+            _canUndo = true;
         }
+        
 
     }
 
@@ -159,18 +176,20 @@ public class GameManager : MonoBehaviour {
     /// </summary>
     private void PlayerGo(Vector3 pointerPos)
     {
-        for (int i = 0; i <= ChessBoard_Grid_Num; i++)
+        for (int i = 0; i < ConstKey.BoardCrossCount; i++)
         {
-            for (int j = 0; j <= ChessBoard_Grid_Num; j++)
+            for (int j = 0; j < ConstKey.BoardCrossCount; j++)
             {
                 _curChess = _chess[i, j];
-                if(_curChess.CurChessState==ChessState.None && Dis(_pointerPos, _curChess.Position) < _minGridDis / 2)                          //找到最接近鼠标点击位置的点，如果空,则落子
+                if (_curChess.CurChessState==ChessState.None && Dis(_pointerPos, _curChess.Position) < _minGridDis / 2)                          //找到最接近鼠标点击位置的点，如果空,则落子
                 {
-                    _chess[i, j].CurChessState = ChessState.BlackChess;                                                                          //默认玩家为黑子
-                    Instantiate(_blackPrefab, _curChess.Position, Quaternion.identity);
+                    _chess[i, j].CurChessState =_isPlayerFirst? ChessState.BlackChess:ChessState.WhiteChess;                                                                          
+                    _curInstantiationObj = _isPlayerFirst ? _blackPrefab : _whiteParefab;
+                    _lastObj=Instantiate(_curInstantiationObj, _curChess.Position, Quaternion.identity);
+                    _curChess = _chess[i, j];
                     //落子成功，更换下棋顺序
                     _whoTurn = WhoTurn.AiGo;
-                    _isWin = IsWin(i, j, ChessState.BlackChess);
+                    _isWin = IsWin(i, j,_curChess.CurChessState);
                     if (_isWin)
                     {
                         ShowResultPanel(_curChess.CurChessState);
@@ -207,7 +226,7 @@ public class GameManager : MonoBehaviour {
             i++;
             count++; //累加右侧
         }
-        if (count >= Win_Num)
+        if (count >= ConstKey.WinNum)
             return true; //获胜
 
         /*计算竖直方向连续棋子个数*/
@@ -224,7 +243,7 @@ public class GameManager : MonoBehaviour {
             j++;
             count++; //累加下方
         }
-        if (count >= Win_Num)
+        if (count >= ConstKey.WinNum)
             return true; //获胜
 
         /*计算左上右下方向连续棋子个数*/
@@ -244,7 +263,7 @@ public class GameManager : MonoBehaviour {
             j++;
             count++; //累加右下
         }
-        if (count >= Win_Num)
+        if (count >= ConstKey.WinNum)
             return true; //获胜
 
         /*计算右上左下方向连续棋子个数*/
@@ -265,7 +284,7 @@ public class GameManager : MonoBehaviour {
             j++;
             count++; //累加左下
         }
-        if (count >= Win_Num)
+        if (count >= ConstKey.WinNum)
             return true; //获胜
 
         return false; //该步没有取胜
@@ -288,12 +307,72 @@ public class GameManager : MonoBehaviour {
 
     }
 
-    private void RestartGame()
+    public void RestartGame()
     {
         _uiAbs.Unload(true);
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+
+    public void ComputerFirst()
+    {
+        _isPlayerFirst = false;
+        _whoTurn = WhoTurn.AiGo;
+        _ai.ComputerFirst(out _chessX,out _chessY);
+        StartPlaying();
+        _chess[_chessX, _chessY].CurChessState = ChessState.BlackChess;                                                                          //默认先手为黑子
+        _lastObj = Instantiate(_blackPrefab, _curChess.Position, Quaternion.identity);
+        _whoTurn = WhoTurn.PlayerGo;
+    }
+
+    public void PlayerFirst()
+    {
+        _isPlayerFirst = true;
+        _whoTurn = WhoTurn.PlayerGo;
+        StartPlaying();
+    }
+
+    private void StartPlaying()
+    {
+        _isStartGame = true;
+        _panel.SetActive(false);
+        _showPanel.SetActive(true);
+        if(_isPlayerFirst)
+        {
+            _blackText.text = string.Format("<color=red>我方</color>");
+            _whiteText.text = string.Format("电脑");
+        }
+        else
+        {
+            _blackText.text = string.Format("电脑");
+            _whiteText.text = string.Format("<color=red>我方</color>");
+        }
+        
+    }
+
+    public void OnClickOnDo()
+    {
+        if(_whoTurn==WhoTurn.PlayerGo&&_canUndo==true&&_lastObj!=null)
+        {
+            _canUndo = false;
+            _chess[_chessX, _chessY].CurChessState = ChessState.None;
+            _chess[_playerX, _playerY].CurChessState = ChessState.None;
+            if(_lastObj!=null)
+            {
+                Destroy(_lastObj);
+                _lastObj = null;
+            }
+            if(_curObj!=null)
+            {
+                Destroy(_curObj);
+                _curObj = null;
+            }
+
+
+        }
 
     }
+
 
 
 }

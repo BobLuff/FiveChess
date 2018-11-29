@@ -234,6 +234,7 @@
   <ItemGroup>
     <Compile Include="Assets\Scripts\AI.cs" />
     <Compile Include="Assets\Scripts\Chess.cs" />
+    <Compile Include="Assets\Scripts\ConstKey.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
