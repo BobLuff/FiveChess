@@ -2,7 +2,7 @@
 https://blog.csdn.net/zzlyw/article/details/54345250
 
 unity版本：2017.4.3      
-相比原项目，本工程是为了测试unity中的AssetBundle打包与读取资源,后又添加AI，现实了简单的人机对战。
+相比原项目，本工程是为了测试unity中的AssetBundle打包与读取资源，后又添加AI，现实了简单的人机对战。
 ### 改动一：添加AssetBundle
 采用AssetBundle动态加载Prefabs资源。AssetBundle读取的是本地的打包文件。
 ### 改动二：整理代码
