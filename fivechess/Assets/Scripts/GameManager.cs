@@ -32,6 +32,10 @@ public class GameManager : MonoBehaviour {
     private Text _blackText;
     [SerializeField]
     private Text _whiteText;
+    [SerializeField]
+    private Text _tipText;
+    [SerializeField]
+    private Button _tipBtn;
 
     private GameObject _blackPrefab;
     private GameObject _whiteParefab;
@@ -159,6 +163,7 @@ public class GameManager : MonoBehaviour {
         var isWin=IsWin(_chessX, _chessY, _curChess.CurChessState);
         if(isWin)
         {
+            _isStartGame = false;
             ShowResultPanel(_curChess.CurChessState);
             _isWin = true;
         }
@@ -192,6 +197,7 @@ public class GameManager : MonoBehaviour {
                     _isWin = IsWin(i, j,_curChess.CurChessState);
                     if (_isWin)
                     {
+                        _isStartGame = false;
                         ShowResultPanel(_curChess.CurChessState);
                     }
                     else
@@ -314,7 +320,7 @@ public class GameManager : MonoBehaviour {
     }
 
 
-    public void ComputerFirst()
+    public void OnClickComputerFirst()
     {
         _isPlayerFirst = false;
         _whoTurn = WhoTurn.AiGo;
@@ -325,7 +331,7 @@ public class GameManager : MonoBehaviour {
         _whoTurn = WhoTurn.PlayerGo;
     }
 
-    public void PlayerFirst()
+    public void OnClickPlayerFirst()
     {
         _isPlayerFirst = true;
         _whoTurn = WhoTurn.PlayerGo;
@@ -367,12 +373,24 @@ public class GameManager : MonoBehaviour {
                 Destroy(_curObj);
                 _curObj = null;
             }
-
-
+            _ai.ComputerUndo(_playerX, _playerY, _chessX, _chessY);
+        }
+        else  if(_canUndo==false)
+        {
+            _tipText.text = string.Format("当前不可操作");
+            _tipBtn.enabled = false;
+            StartCoroutine(DisableText());
         }
 
     }
 
+
+    IEnumerator DisableText()
+    {
+        yield return new WaitForSeconds(1f);
+        _tipText.text = null;
+        _tipBtn.enabled = true;
+    }
 
 
 }

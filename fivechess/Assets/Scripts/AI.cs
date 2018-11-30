@@ -214,14 +214,52 @@ class AI
         finalX = 7;
         finalY = 7;
         _board[7, 7] = 1;//电脑下子位置   
+        CalcCore();
+        for (int i = 0; i < MaxFiveChainCount; i++)
+        {
+            if (_aiTable[7,7, i] && _win[0, i] != -1)
+            {
+                _win[0, i]++;//给白子的所有五连子可能的加载当前连子数  
+            }
+
+            if (_playerTable[_m, _n, i])
+            {
+                _playerTable[_m, _n, i] = false;
+                _win[1, i] = -1;
+            }
+        }
     }
 
     /// <summary>
     /// 悔棋
     /// </summary>
-    public void ComputerUndo(int x,int y)
+    public void ComputerUndo(int playerX,int playerY,int computerX,int computerY)
     {
-        _board[x, y] = 0;
+        _board[playerX, playerY] = 0;
+        _board[computerX, computerY] = 0;
+        for (int i = 0; i < MaxFiveChainCount; i++)
+        {
+            if (_playerTable[playerX, playerX, i] && _win[1, i] != -1)
+            {
+                _win[1, i]--;
+            }
+            if (_aiTable[playerX, playerX, i]==false)
+            {
+                _aiTable[playerX, playerX, i] = true;
+                _win[0, i] = -1;
+            }
+            if (_aiTable[computerX, computerY, i] && _win[0, i] != -1)
+            {
+                _win[0, i]--;//给白子的所有五连子可能的加载当前连子数  
+            }
+
+            if (_playerTable[computerX, computerY, i] == false)
+            {
+                _playerTable[_m, _n, i] = true;
+                _win[1, i] = -1;
+            }
+        }
+
     }
 
     // AI计算输出, 需要玩家走过的点
